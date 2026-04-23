@@ -1,0 +1,547 @@
+I. Introduction
+The Universal Game‑AI (UGA) is a micro‑intelligence kernel designed to provide expressive, adaptive, modular reasoning for games and interactive worlds.
+
+It is built on four canonical pillars:
+
+Perception — awareness
+
+Decision — intention
+
+Expression — voice
+
+Adaptation — growth
+
+These pillars form a closed, deterministic loop that transforms context into meaning, meaning into action, and action into evolution.
+
+The UGA is:
+
+engine‑agnostic
+
+genre‑agnostic
+
+platform‑agnostic
+
+transparent
+
+modular
+
+small enough to understand
+
+expressive enough to matter
+
+This whitepaper defines the canonical architecture, data flow, interfaces, and invariants of the UGA Kernel.
+
+II. Kernel Architecture Overview
+The UGA Kernel is composed of four subsystems:
+
+Code
++------------------+
+|  Perception Core |
+| (Context → Emb)  |
++---------+--------+
+          |
+          v
++------------------+
+|  Decision Core   |
+| (Emb → Intent)   |
++---------+--------+
+          |
+          v
++------------------+
+| Expression Core  |
+| (Intent → Text)  |
++---------+--------+
+          |
+          v
++------------------+
+| Adaptation Core  |
+| (Evolve State)   |
++---------+--------+
+          |
+          +------ feeds back into Perception & Decision
+This loop is immutable and defines the kernel’s identity.
+
+III. Kernel Data Flow (Canonical Sequence)
+Every UGA cycle follows this exact order:
+
+1. Perception Core
+Input: MicroLLMContext  
+Output: embedding, pattern_priors
+
+Tasks:
+
+parse context
+
+encode features
+
+map to embedding
+
+compute pattern priors
+
+2. Decision Core
+Input: embedding, pattern_priors, mood, confidence, phi  
+Output: intent, parameters
+
+Tasks:
+
+build decision vector
+
+integrate φ‑modulation
+
+integrate emotional state
+
+select intent
+
+generate parameters
+
+3. Expression Core
+Input: intent, pattern_priors, phi  
+Output: text (optional)
+
+Tasks:
+
+select template
+
+pick variant (φ‑modulated)
+
+resolve placeholders
+
+post‑process
+
+4. Adaptation Core
+Input: intent, parameters, context, reward/penalty  
+Output: updated mood, confidence, biases
+
+Tasks:
+
+update emotional state
+
+apply drift
+
+apply φ‑mutation
+
+maintain short‑term memory
+
+5. Output
+The kernel returns:
+
+json
+{
+  "intent": "...",
+  "params": { ... },
+  "text": "..."
+}
+This is the only output the kernel ever produces.
+
+IV. Canonical C++ API
+The UGA Kernel exposes a single unified interface:
+
+cpp
+class MicroLLM {
+public:
+    bool init(const MicroLLMConfig& cfg);
+    void shutdown();
+
+    MicroLLMOutput query(const MicroLLMContext& ctx);
+
+    void reward(float amount);
+    void penalize(float amount);
+    void tick(float dt);
+
+private:
+    PerceptionCore perception;
+    DecisionCore decision;
+    ExpressionCore expression;
+    AdaptationCore adaptation;
+};
+This API is permanent across all implementations.
+
+Next Sections (coming next):
+If you say “Proceed”, we continue with:
+
+V. Perception Core Specification
+embedding formats
+
+tag extraction
+
+pattern prior computation
+
+normalization rules
+
+VI. Decision Core Specification
+decision vector
+
+φ‑integration
+
+emotional modulation
+
+intent selection
+
+parameter generation
+
+VII. Expression Core Specification
+template keys
+
+variant selection
+
+placeholder resolution
+
+post‑processing rules
+
+VIII. Adaptation Core Specification
+emotional model
+
+reward/penalty math
+
+drift equations
+
+φ‑mutation rules
+
+history buffer
+
+IX. Kernel Invariants
+rules that must never be violated
+
+X. Reference Implementation Notes
+minimal C++ example
+
+data file formats
+
+integration guide:
+
+V. Perception Core Specification
+Context → Embedding → Pattern Priors
+The Perception Core is responsible for transforming raw game context into a structured semantic representation. It is intentionally simple, transparent, and fully data‑driven.
+
+It performs four canonical tasks:
+
+Context Parsing
+
+Feature Encoding
+
+Embedding Construction
+
+Pattern Prior Computation
+
+These tasks are deterministic and must occur in this order.
+
+V.1 Context Parsing
+The Perception Core receives a MicroLLMContext object containing:
+
+cpp
+struct MicroLLMContext {
+    std::string role;        // e.g. "world_spirit"
+    std::string situation;   // e.g. "secret_zone"
+    std::string worldState;  // JSON string
+    std::string history;     // JSON string
+};
+The kernel does not interpret game logic.
+It only extracts tags from worldState and history.
+
+Tag Extraction Rules
+Keys in JSON become tags.
+
+Boolean true → tag present.
+
+Numeric values → normalized floats.
+
+Strings → symbolic tags.
+
+Example:
+
+json
+{
+  "near_secret": true,
+  "player_height": 0.7,
+  "weather": "fog"
+}
+Becomes:
+
+Code
+tags = ["near_secret", "weather:fog"]
+values = { "player_height": 0.7 }
+These tags and values influence embeddings.
+
+V.2 Feature Encoding
+The Perception Core uses three embedding tables:
+
+Role Embeddings
+
+Situation Embeddings
+
+Tag Embeddings
+
+All embeddings must be the same dimensionality (recommended: 3–16).
+
+Embedding Construction
+The embedding is built by summing:
+
+Code
+embedding = roleEmbedding(role)
+          + situationEmbedding(situation)
+          + Σ tagEmbedding(tag)
+If a tag has no embedding, it is ignored.
+
+Normalization
+After summation, the embedding is L2‑normalized:
+
+Code
+embedding = embedding / ||embedding||
+This ensures stable dot products and consistent priors.
+
+V.3 Pattern Prior Computation
+Patterns represent emotional or stylistic tendencies (e.g., “dreamlike”, “threatening”).
+
+Each pattern has an embedding vector.
+
+The Perception Core computes a softmax over dot products:
+
+Code
+score[p] = dot(embedding, patternEmbedding[p])
+prior[p] = exp(score[p]) / Σ exp(score[*])
+These priors influence:
+
+Decision Core intent selection
+
+Expression Core template choice
+
+Adaptation Core bias evolution
+
+Pattern priors are the emotional palette of the UGA.
+
+V.4 Output
+The Perception Core outputs:
+
+cpp
+struct PerceptionOutput {
+    Vec embedding;
+    std::unordered_map<std::string, float> patternPriors;
+};
+This output is passed directly into the Decision Core.
+
+VI. Decision Core Specification
+Embedding → Intent → Parameters
+The Decision Core transforms semantic meaning into actionable intention.
+
+It performs five canonical tasks:
+
+Decision Vector Construction
+
+Emotional Modulation
+
+φ‑Modulation
+
+Intent Selection
+
+Parameter Generation
+
+VI.1 Decision Vector Construction
+The Decision Core receives:
+
+embedding
+
+pattern priors
+
+mood
+
+confidence
+
+φ
+
+It constructs a decision vector, a small set of weighted signals that represent the current “state of mind.”
+
+Example signals:
+
+aggression
+
+caution
+
+curiosity
+
+playfulness
+
+crypticness
+
+These are derived from pattern priors and embedding features.
+
+VI.2 Emotional Modulation
+The Adaptation Core provides:
+
+mood (−1 to +1)
+
+confidence (0 to 1)
+
+These modulate the decision vector:
+
+Code
+aggression += mood * 0.5
+caution    += (1 - confidence) * 0.3
+This gives the UGA a living emotional state.
+
+VI.3 φ‑Modulation
+The golden ratio φ introduces natural variation:
+
+Code
+phase = sin(phi * time)
+decisionVector[i] += phase * small_weight
+This prevents repetition and creates organic behavior.
+
+VI.4 Intent Selection
+The Decision Core selects an intent from a developer‑defined list.
+
+Selection is based on:
+
+decision vector
+
+pattern priors
+
+emotional state
+
+role heuristics
+
+This can be rule‑based or neural, but the interface is the same.
+
+VI.5 Parameter Generation
+Each intent has a schema:
+
+Code
+spawn_platform → offset_x, offset_y, duration
+shift_gravity → direction, intensity
+Parameters are generated as normalized floats (0–1) unless otherwise specified.
+
+The game interprets them.
+
+VII. Expression Core Specification
+Intent → Template → Text
+The Expression Core is optional but powerful.
+It gives the UGA a voice.
+
+It performs three tasks:
+
+Template Selection
+
+Variant Selection (φ‑modulated)
+
+Placeholder Resolution
+
+VII.1 Template Selection
+Each intent maps to a list of templates:
+
+json
+"whisper_hint": [
+  "The floor remembers where you fell.",
+  "Not all edges are endings."
+]
+If no template exists, return empty text.
+
+VII.2 Variant Selection
+Variant selection uses φ‑modulation:
+
+Code
+index = floor( ((sin(phi * t) + 1) / 2) * (templateCount - 1) )
+This ensures:
+
+non‑repeating variation
+
+natural rhythm
+
+aesthetic consistency
+
+VII.3 Placeholder Resolution
+Templates may contain placeholders:
+
+Code
+"The [ROLE] senses a shift."
+The Expression Core replaces them using context.
+
+VIII. Adaptation Core Specification
+Experience → Evolution
+The Adaptation Core maintains the UGA’s internal emotional and evolutionary state.
+
+It performs:
+
+Reward/Penalty Processing
+
+Emotional State Update
+
+Drift
+
+φ‑Mutation
+
+History Buffer Maintenance
+
+VIII.1 Emotional Model
+Two canonical variables:
+
+Code
+mood ∈ [-1, +1]
+confidence ∈ [0, 1]
+These influence decision‑making.
+
+VIII.2 Reward/Penalty
+Reward:
+
+Code
+mood += amount * 0.1
+confidence += amount * 0.05
+Penalty:
+
+Code
+mood -= amount * 0.1
+confidence -= amount * 0.05
+Clamped to bounds.
+
+VIII.3 Drift
+On each tick:
+
+Code
+mood → 0
+confidence → 0.5
+This prevents runaway behavior.
+
+VIII.4 φ‑Mutation
+Every φ seconds:
+
+nudge biases
+
+shift tendencies
+
+evolve subtly
+
+This creates organic growth.
+
+VIII.5 History Buffer
+Stores recent events for short‑term memory.
+
+IX. Kernel Invariants
+These rules must never be violated:
+
+Perception → Decision → Expression → Adaptation (always in this order).
+
+φ‑modulation is always applied.
+
+Emotional state always influences decisions.
+
+Evolution is bounded.
+
+The kernel never performs game actions directly.
+
+The kernel only outputs intent, parameters, and text.
+
+All customization is external to the kernel.
+
+These invariants define the UGA’s identity.
+
+X. Reference Implementation Notes
+C++ recommended for core.
+
+JSON for data files.
+
+Embeddings: 3–16 dimensions.
+
+φ = 1.6180339887.
+
+Tick rate: 10–60 Hz.
+
+Reward/penalty: developer‑defined triggers.
+

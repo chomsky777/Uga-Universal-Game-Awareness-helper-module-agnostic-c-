@@ -1,0 +1,44 @@
+json
+{
+  "intents": [
+    "attack",
+    "retreat",
+    "adjust_layout",
+    "spawn_spiral",
+    "speak"
+  ],
+  "params_schema": {
+    "attack": ["aggression", "range"],
+    "adjust_layout": ["verticality", "secrets", "enemy_density"],
+    "spawn_spiral": ["intensity", "radius", "speed"]
+  }
+}
+D. Lore / world rules (Perception + Expression)
+json
+{
+  "world_rules": "Gravity feels slightly wrong here. Time bends in pulses.",
+  "npc_archetypes": [
+    { "id": "seer", "tone": "cryptic", "keywords": ["vision", "pattern", "cycle"] },
+    { "id": "guardian", "tone": "stern", "keywords": ["duty", "threshold", "trial"] }
+  ]
+}
+3. Canonical query flow in code
+cpp
+MicroLLM uga;
+MicroLLMConfig cfg;
+cfg.modelPath = "data/uga_model.json";
+cfg.lorePath  = "data/uga_lore.json";
+
+uga.init(cfg);
+
+MicroLLMContext ctx;
+ctx.role = "boss_ai";
+ctx.situation = "phase_2";
+ctx.worldState = R"({ "player_health": 0.4, "time_in_phase": 12.3 })";
+ctx.history = R"({ "last_intent": "attack", "last_result": "blocked" })";
+
+MicroLLMOutput out = uga.query(ctx);
+
+// out.intent might be: "spawn_spiral"
+// out.params might be: { "intensity":0.9, "radius":0.7, "speed":0.6 }
+// out.text might be:   "The air tightens into a spiraling lattice of force."
